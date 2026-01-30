@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
-  const STORAGE_KEY = 'texas-diabolo-2026-v4';
+  // --- PRODUCTION STORAGE KEY ---
+  const STORAGE_KEY = 'texas-diabolo-final';
 
   // --- AUTH STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -31,13 +32,14 @@ function App() {
   };
 
   const [data, setData] = useState(loadState);
-  const [view, setView] = useState('register'); 
+  const [view, setView] = useState('register'); // register, judge, results, analysis
   const [currentDivision, setCurrentDivision] = useState(data.divisions[0]);
   const [judgeTab, setJudgeTab] = useState('tech'); 
   const [analysisTab, setAnalysisTab] = useState('tech'); 
   const [judgeSelection, setJudgeSelection] = useState(null);
   const [currentCompetitorName, setCurrentCompetitorName] = useState('');
   
+  // Active Scoring Buffer
   const [currentScores, setCurrentScores] = useState({
     technical: { oneD: 0, twoD: 0, threeD: 0, fourD: 0, vertax: 0 },
     performance: { stage: 0, style: 0, control: 0, music: 0, comp: 0 },
@@ -52,11 +54,19 @@ function App() {
   const techLabels = { oneD: "1D", twoD: "2D", threeD: "3D", fourD: "4D", vertax: "Vertax" };
   const perfLabels = { stage: "Stage", style: "Style", control: "Control", music: "Musicality", comp: "Composition" };
 
-  // --- Helpers ---
+  // --- Scoring Helpers ---
   const getTechSum = (tech) => Object.keys(tech).reduce((acc, key) => acc + (tech[key] * data.weights[key]), 0);
   const getPerfSum = (perf) => Object.values(perf).reduce((acc, val) => acc + parseFloat(val), 0);
   const getDeductionSum = (ded) => (ded.minor * 0.5) + (ded.normal * 1.0) + (ded.major * 3.0);
-  const calculateTotal = (tech, perf, ded) => (getTechSum(tech) + getPerfSum(perf) - getDeductionSum(ded)).toFixed(2);
+
+  // FINAL FORMULA: (Tech * 0.7) + (Perf * 0.3) - Deductions
+  const calculateTotal = (tech, perf, ded) => {
+    const t = getTechSum(tech);
+    const p = getPerfSum(perf);
+    const d = getDeductionSum(ded);
+    const total = (t * 0.7) + (p * 0.3) - d;
+    return total.toFixed(2);
+  };
 
   // --- Auth Handlers ---
   const handleLogin = (e) => {
@@ -108,9 +118,7 @@ function App() {
 
   const handleScoreChange = (type, category, value) => {
     let val = parseFloat(value);
-    if (isNaN(val)) val = 0;
-    if (val > 10) val = 10;
-    if (val < 0) val = 0;
+    if (isNaN(val)) val = 0; if (val > 10) val = 10; if (val < 0) val = 0;
     setCurrentScores(prev => ({ ...prev, [type]: { ...prev[type], [category]: val } }));
   };
 
@@ -140,40 +148,43 @@ function App() {
     }
   };
 
+  // --- CSV Export ---
   const exportCSV = () => {
     if (data.competitors.length === 0) return;
     let csv = 'Rank,Name,Division,Total Score,Ded Total,Minor(-0.5),Normal(-1),Major(-3),';
     csv += Object.values(techLabels).join(',') + ',Tech Total,';
     csv += Object.values(perfLabels).join(',') + ',Perf Total\n';
+    
     const sorted = [...data.competitors].sort((a, b) => b.totalScore - a.totalScore);
     sorted.forEach((comp, index) => {
       const techSum = getTechSum(comp.technical).toFixed(2);
       const perfSum = getPerfSum(comp.performance).toFixed(2);
       const dedSum = getDeductionSum(comp.deductions).toFixed(1);
+      
       let row = `${index + 1},"${comp.name}","${comp.division}",${comp.totalScore},${dedSum},`;
       row += `${comp.deductions.minor},${comp.deductions.normal},${comp.deductions.major},`;
       row += Object.keys(techLabels).map(k => comp.technical[k]).join(',') + ',';
-      row += `${techSum},`;
+      row += `${techSum},`; 
       row += Object.keys(perfLabels).map(k => comp.performance[k]).join(',') + ',';
-      row += `${perfSum}`;
+      row += `${perfSum}`; 
       csv += row + '\n';
     });
+    
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `diabolo_results_${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = url; a.download = `final_results.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
   const filteredCompetitors = data.competitors.filter(c => c.division === currentDivision);
 
-  // --- RENDER: LOGIN VIEW ---
+  // --- RENDER ---
   if (!isAuthenticated) {
     return (
       <div className="login-container">
         <div className="login-card">
           <h1>Texas Diabolo <span>2026</span></h1>
-          <p>Judge Authorization</p>
           <form onSubmit={handleLogin}>
             <input type="text" placeholder="Username" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} />
             <input type="password" placeholder="Password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} />
@@ -185,7 +196,6 @@ function App() {
     );
   }
 
-  // --- RENDER: MAIN APP ---
   return (
     <div className="app-container">
       <header className="main-header">
@@ -210,13 +220,12 @@ function App() {
       </header>
 
       <main>
+        {/* SETTINGS */}
         {view === 'settings' && (
           <section className="card settings-card">
-            <div className="card-header">
-              <h2>Configuration</h2>
-            </div>
+            <h2>Configuration</h2>
             <div className="setting-block">
-              <h3>Technical Scoring Weights</h3>
+              <h3>Formula: (Tech × 0.7) + (Perf × 0.3) - Deductions</h3>
               <div className="settings-grid">
                 {Object.keys(data.weights).map(key => (
                   <div key={key} className="weight-input">
@@ -227,24 +236,20 @@ function App() {
               </div>
             </div>
             <div className="setting-block danger-zone">
-              <h3>Danger Zone</h3>
-              <p>Resetting will permanently delete all competitor data.</p>
               <button onClick={handleReset} className="btn-danger">Reset All Data</button>
             </div>
           </section>
         )}
 
+        {/* REGISTRATION */}
         {view === 'register' && (
           <section className="card">
-            <div className="card-header">
-              <h2>Registration <span className="division-badge">{currentDivision}</span></h2>
-            </div>
+            <h2>Registration <span className="division-badge">{currentDivision}</span></h2>
             <form onSubmit={addCompetitor} className="add-form">
               <input type="text" placeholder="Enter Competitor Name..." value={currentCompetitorName} onChange={(e) => setCurrentCompetitorName(e.target.value)} />
               <button type="submit" className="btn-primary">Add Competitor</button>
             </form>
             <div className="list-group">
-              {filteredCompetitors.length === 0 && <p className="empty-state">No competitors registered yet.</p>}
               {filteredCompetitors.map(comp => (
                 <div key={comp.id} className="competitor-row">
                   <div className="comp-info">
@@ -258,14 +263,15 @@ function App() {
           </section>
         )}
 
+        {/* JUDGING */}
         {view === 'judge' && judgeSelection && (
           <section className="card judging-box">
             <div className="judge-header">
               <div className="judge-info">
                 <h2>{judgeSelection.name}</h2>
                 <div className="pill-tabs">
-                  <button className={judgeTab === 'tech' ? 'active' : ''} onClick={() => setJudgeTab('tech')}>Technical</button>
-                  <button className={judgeTab === 'perf' ? 'active' : ''} onClick={() => setJudgeTab('perf')}>Performance</button>
+                  <button className={judgeTab === 'tech' ? 'active' : ''} onClick={() => setJudgeTab('tech')}>Technical (70%)</button>
+                  <button className={judgeTab === 'perf' ? 'active' : ''} onClick={() => setJudgeTab('perf')}>Performance (30%)</button>
                 </div>
               </div>
               <div className="live-score-box">
@@ -314,80 +320,83 @@ function App() {
           </section>
         )}
 
+        {/* RESULTS */}
         {view === 'results' && (
           <section className="card results-card">
             <div className="card-header row-between">
               <h2>Leaderboard <span className="division-badge">{currentDivision}</span></h2>
               <button onClick={exportCSV} className="btn-secondary">Download CSV</button>
             </div>
-            <div className="table-wrapper">
-              <table className="results-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Competitor</th>
-                    <th>Tech</th>
-                    <th>Perf</th>
-                    <th>Ded</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCompetitors.sort((a, b) => b.totalScore - a.totalScore).map((comp, index) => (
+            <table className="results-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Competitor</th>
+                  <th>Tech (70%)</th>
+                  <th>Perf (30%)</th>
+                  <th>Ded</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCompetitors.sort((a, b) => b.totalScore - a.totalScore).map((comp, index) => {
+                   const t = getTechSum(comp.technical);
+                   const p = getPerfSum(comp.performance);
+                   return (
                     <tr key={comp.id} className={index < 3 ? `rank-${index+1}` : ''}>
                       <td className="rank-col">{index + 1}</td>
                       <td className="name-col">{comp.name}</td>
-                      <td className="tech-col">{getTechSum(comp.technical).toFixed(2)}</td>
-                      <td className="perf-col">{getPerfSum(comp.performance).toFixed(2)}</td>
+                      <td className="tech-col">{(t * 0.7).toFixed(2)} <small className="muted">({t.toFixed(1)})</small></td>
+                      <td className="perf-col">{(p * 0.3).toFixed(2)} <small className="muted">({p.toFixed(1)})</small></td>
                       <td className="drop-col">-{getDeductionSum(comp.deductions)}</td>
                       <td className="final-score">{comp.totalScore}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                   );
+                })}
+              </tbody>
+            </table>
           </section>
         )}
 
+        {/* ANALYSIS */}
         {view === 'analysis' && (
-          <section className="card">
-            <div className="card-header row-between">
-              <h2>Analysis <span className="division-badge">{currentDivision}</span></h2>
-              <div className="pill-tabs small">
-                <button className={analysisTab === 'tech' ? 'active' : ''} onClick={() => setAnalysisTab('tech')}>Tech</button>
-                <button className={analysisTab === 'perf' ? 'active' : ''} onClick={() => setAnalysisTab('perf')}>Perf</button>
-              </div>
-            </div>
-            <div className="analysis-grid-layout">
-              {filteredCompetitors.length === 0 && <p className="empty-state">No data available.</p>}
-              {filteredCompetitors.sort((a, b) => b.totalScore - a.totalScore).map(comp => (
-                <div key={comp.id} className="analysis-block">
-                  <div className="block-head">
-                    <strong>{comp.name}</strong>
-                    <span className="score-tag">{comp.totalScore}</span>
-                  </div>
-                  <div className="chart-area">
-                    {analysisTab === 'tech' ? Object.keys(techLabels).map(key => (
-                      <div key={key} className="chart-col">
-                        <div className="bar-track">
-                          <div className={`bar-fill cat-${key}`} style={{ height: `${(comp.technical[key]/10)*100}%` }}></div>
-                        </div>
-                        <span className="chart-label">{techLabels[key]}</span>
-                      </div>
-                    )) : Object.keys(perfLabels).map(key => (
-                      <div key={key} className="chart-col">
-                        <div className="bar-track">
-                          <div className="bar-fill perf-generic" style={{ height: `${(comp.performance[key]/10)*100}%` }}></div>
-                        </div>
-                        <span className="chart-label">{perfLabels[key]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+           <section className="card">
+             <div className="card-header row-between">
+               <h2>Analysis <span className="division-badge">{currentDivision}</span></h2>
+               <div className="pill-tabs small">
+                 <button className={analysisTab === 'tech' ? 'active' : ''} onClick={() => setAnalysisTab('tech')}>Tech</button>
+                 <button className={analysisTab === 'perf' ? 'active' : ''} onClick={() => setAnalysisTab('perf')}>Perf</button>
+               </div>
+             </div>
+             <div className="analysis-grid-layout">
+               {filteredCompetitors.sort((a, b) => b.totalScore - a.totalScore).map(comp => (
+                 <div key={comp.id} className="analysis-block">
+                   <div className="block-head">
+                     <strong>{comp.name}</strong>
+                     <span className="score-tag">{comp.totalScore}</span>
+                   </div>
+                   <div className="chart-area">
+                     {analysisTab === 'tech' ? Object.keys(techLabels).map(key => (
+                       <div key={key} className="chart-col">
+                         <div className="bar-track">
+                           <div className={`bar-fill cat-${key}`} style={{ height: `${(comp.technical[key]/10)*100}%` }}></div>
+                         </div>
+                         <span className="chart-label">{techLabels[key]}</span>
+                       </div>
+                     )) : Object.keys(perfLabels).map(key => (
+                       <div key={key} className="chart-col">
+                         <div className="bar-track">
+                           <div className="bar-fill perf-generic" style={{ height: `${(comp.performance[key]/10)*100}%` }}></div>
+                         </div>
+                         <span className="chart-label">{perfLabels[key]}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </section>
+         )}
       </main>
     </div>
   );
