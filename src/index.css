@@ -1,0 +1,114 @@
+:root {
+  --primary: #d946ef; /* Changed to a 'Texas' Magenta/Purple vibe */
+  --primary-dark: #c026d3;
+  --secondary: #64748b;
+  --tech-color: #3b82f6;
+  --perf-color: #10b981;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  margin: 0;
+  color: #1e293b;
+}
+
+.app-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+/* Header & Division Bar */
+.main-header { text-align: center; margin-bottom: 30px; }
+.main-header h1 { color: #1e293b; margin-bottom: 10px; }
+
+.division-bar {
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.division-bar select {
+  border: none;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  cursor: pointer;
+  background: transparent;
+}
+
+/* Nav */
+nav { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+nav button {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--secondary);
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+}
+nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Forms */
+.inline-form { display: flex; gap: 10px; margin-top: 10px; }
+.inline-form input { flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
+
+/* Cards & Base */
+.card { background: var(--surface); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+.add-form { display: flex; gap: 10px; margin-bottom: 20px; }
+.add-form input { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 6px; }
+
+/* Judging */
+.judging-box .judge-header {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;
+}
+.live-score { font-size: 2rem; font-weight: 800; color: var(--primary); }
+.judge-tabs { display: flex; gap: 8px; margin-top: 5px; }
+.judge-tabs button {
+  border: 1px solid var(--border); background: transparent; padding: 4px 12px; border-radius: 15px; cursor: pointer; font-size: 0.85rem;
+}
+.judge-tabs button.tab-active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.slider-group { margin-bottom: 15px; }
+.slider-label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
+.slider-val { color: var(--primary); }
+input[type=range] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+
+/* Footer */
+.footer-controls { display: flex; justify-content: space-between; align-items: flex-end; }
+.stepper { display: flex; gap: 8px; align-items: center; }
+.stepper button { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #fecaca; background: #fef2f2; color: #dc2626; cursor: pointer; }
+.stepper span { font-weight: bold; font-size: 1.2rem; min-width: 20px; text-align: center; }
+
+.btn-primary { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-secondary { background: var(--secondary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+.btn-text { background: none; border: none; color: var(--secondary); cursor: pointer; margin-right: 10px; }
+
+/* Tables */
+.results-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.results-table th { text-align: left; color: var(--secondary); border-bottom: 2px solid var(--border); padding: 10px; }
+.results-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+.tech-col { color: var(--tech-color); font-weight: bold; }
+.perf-col { color: var(--perf-color); font-weight: bold; }
+.final-score { font-weight: 800; font-size: 1.1rem; }
+
+/* Analysis Bars */
+.analysis-row { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px dashed var(--border); }
+.analysis-info { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.bar-chart { display: flex; flex-direction: column; gap: 6px; }
+.bar-group { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.bar-label { width: 80px; text-align: right; color: var(--secondary); }
+.bar-track { flex: 1; background: #f1f5f9; height: 10px; border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 5px; }
+.tech-fill { background: var(--tech-color); }
+.perf-fill { background: var(--perf-color); }
+
+.competitor-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.btn-judge { background: #e2e8f0; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+.btn-judge.done { background: #dcfce7; color: #166534; }
