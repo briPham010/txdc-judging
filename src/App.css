@@ -30,6 +30,36 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* LOGIN STYLES */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: var(--primary-gradient);
+}
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+.login-card h1 { font-size: 1.5rem; margin-bottom: 5px; color: #1e293b; }
+.login-card p { color: #64748b; margin-bottom: 25px; }
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-sizing: border-box; /* Fixes padding width issues */
+}
+.login-card input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+.error-msg { color: #ef4444; font-size: 0.9rem; margin-bottom: 15px; font-weight: 600; }
+
 .app-container {
   max-width: 850px;
   margin: 0 auto;
@@ -53,6 +83,8 @@ body {
   align-items: center;
   margin-bottom: 20px;
 }
+
+.header-actions { display: flex; gap: 10px; align-items: center; }
 
 .main-header h1 {
   margin: 0;
@@ -79,6 +111,8 @@ body {
   background: white;
   color: var(--text-main);
 }
+.btn-logout { background: rgba(0,0,0,0.2); border: none; color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 600; }
+.btn-logout:hover { background: rgba(0,0,0,0.3); }
 
 .main-nav {
   display: flex;

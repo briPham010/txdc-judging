@@ -4,12 +4,19 @@ import './App.css';
 function App() {
   const STORAGE_KEY = 'texas-diabolo-2026-v4';
 
-  // --- Initializer ---
+  // --- AUTH STATE ---
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('auth_token') === 'valid';
+  });
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // --- DATA LOADING ---
   const loadState = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Data migration safety check (if older versions existed)
       const updatedCompetitors = parsed.competitors.map(c => ({
         ...c,
         deductions: c.deductions || { minor: 0, normal: 0, major: 0 }
@@ -23,26 +30,20 @@ function App() {
     };
   };
 
-  // --- Global State ---
   const [data, setData] = useState(loadState);
   const [view, setView] = useState('register'); 
   const [currentDivision, setCurrentDivision] = useState(data.divisions[0]);
-  
-  // Tabs
   const [judgeTab, setJudgeTab] = useState('tech'); 
   const [analysisTab, setAnalysisTab] = useState('tech'); 
-
   const [judgeSelection, setJudgeSelection] = useState(null);
   const [currentCompetitorName, setCurrentCompetitorName] = useState('');
   
-  // Judging Holding State
   const [currentScores, setCurrentScores] = useState({
     technical: { oneD: 0, twoD: 0, threeD: 0, fourD: 0, vertax: 0 },
     performance: { stage: 0, style: 0, control: 0, music: 0, comp: 0 },
     deductions: { minor: 0, normal: 0, major: 0 }
   });
 
-  // --- Persistence ---
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
@@ -55,17 +56,31 @@ function App() {
   const getTechSum = (tech) => Object.keys(tech).reduce((acc, key) => acc + (tech[key] * data.weights[key]), 0);
   const getPerfSum = (perf) => Object.values(perf).reduce((acc, val) => acc + parseFloat(val), 0);
   const getDeductionSum = (ded) => (ded.minor * 0.5) + (ded.normal * 1.0) + (ded.major * 3.0);
+  const calculateTotal = (tech, perf, ded) => (getTechSum(tech) + getPerfSum(perf) - getDeductionSum(ded)).toFixed(2);
 
-  const calculateTotal = (tech, perf, ded) => {
-    const total = getTechSum(tech) + getPerfSum(perf) - getDeductionSum(ded);
-    return total.toFixed(2);
+  // --- Auth Handlers ---
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (loginUser === 'awooga' && loginPass === '123') {
+      setIsAuthenticated(true);
+      sessionStorage.setItem('auth_token', 'valid');
+      setLoginError('');
+    } else {
+      setLoginError('Invalid Username or Password');
+    }
   };
 
-  // --- Actions ---
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('auth_token');
+    setLoginUser('');
+    setLoginPass('');
+  };
+
+  // --- Core Actions ---
   const addCompetitor = (e) => {
     e.preventDefault();
     if (!currentCompetitorName.trim()) return;
-    
     const newCompetitor = {
       id: Date.now(),
       name: currentCompetitorName,
@@ -76,7 +91,6 @@ function App() {
       totalScore: 0,
       isJudged: false
     };
-
     setData(prev => ({ ...prev, competitors: [...prev.competitors, newCompetitor] }));
     setCurrentCompetitorName('');
   };
@@ -97,20 +111,13 @@ function App() {
     if (isNaN(val)) val = 0;
     if (val > 10) val = 10;
     if (val < 0) val = 0;
-
-    setCurrentScores(prev => ({
-      ...prev,
-      [type]: { ...prev[type], [category]: val }
-    }));
+    setCurrentScores(prev => ({ ...prev, [type]: { ...prev[type], [category]: val } }));
   };
 
   const handleDeductionChange = (type, delta) => {
     setCurrentScores(prev => ({
       ...prev,
-      deductions: {
-        ...prev.deductions,
-        [type]: Math.max(0, prev.deductions[type] + delta)
-      }
+      deductions: { ...prev.deductions, [type]: Math.max(0, prev.deductions[type] + delta) }
     }));
   };
 
@@ -118,21 +125,14 @@ function App() {
     const finalTotal = calculateTotal(currentScores.technical, currentScores.performance, currentScores.deductions);
     setData(prev => ({
       ...prev,
-      competitors: prev.competitors.map(c => 
-        c.id === judgeSelection.id 
-          ? { ...c, technical: currentScores.technical, performance: currentScores.performance, deductions: currentScores.deductions, totalScore: finalTotal, isJudged: true }
-          : c
-      )
+      competitors: prev.competitors.map(c => c.id === judgeSelection.id ? { ...c, technical: currentScores.technical, performance: currentScores.performance, deductions: currentScores.deductions, totalScore: finalTotal, isJudged: true } : c)
     }));
     setJudgeSelection(null);
     setView('results');
   };
 
-  const updateWeight = (key, val) => {
-    setData(prev => ({ ...prev, weights: { ...prev.weights, [key]: val } }));
-  };
+  const updateWeight = (key, val) => setData(prev => ({ ...prev, weights: { ...prev.weights, [key]: val } }));
 
-  // --- Reset Feature ---
   const handleReset = () => {
     if (window.confirm("ARE YOU SURE? This will delete all competitors and scores permanently.")) {
       localStorage.removeItem(STORAGE_KEY);
@@ -140,19 +140,16 @@ function App() {
     }
   };
 
-  // --- CSV Export ---
   const exportCSV = () => {
     if (data.competitors.length === 0) return;
     let csv = 'Rank,Name,Division,Total Score,Ded Total,Minor(-0.5),Normal(-1),Major(-3),';
     csv += Object.values(techLabels).join(',') + ',Tech Total,';
     csv += Object.values(perfLabels).join(',') + ',Perf Total\n';
-
     const sorted = [...data.competitors].sort((a, b) => b.totalScore - a.totalScore);
     sorted.forEach((comp, index) => {
       const techSum = getTechSum(comp.technical).toFixed(2);
       const perfSum = getPerfSum(comp.performance).toFixed(2);
       const dedSum = getDeductionSum(comp.deductions).toFixed(1);
-      
       let row = `${index + 1},"${comp.name}","${comp.division}",${comp.totalScore},${dedSum},`;
       row += `${comp.deductions.minor},${comp.deductions.normal},${comp.deductions.major},`;
       row += Object.keys(techLabels).map(k => comp.technical[k]).join(',') + ',';
@@ -164,24 +161,43 @@ function App() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `diabolo_results_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = `diabolo_results_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
   const filteredCompetitors = data.competitors.filter(c => c.division === currentDivision);
 
+  // --- RENDER: LOGIN VIEW ---
+  if (!isAuthenticated) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <h1>Texas Diabolo <span>2026</span></h1>
+          <p>Judge Authorization</p>
+          <form onSubmit={handleLogin}>
+            <input type="text" placeholder="Username" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} />
+            <input type="password" placeholder="Password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} />
+            {loginError && <div className="error-msg">{loginError}</div>}
+            <button type="submit" className="btn-primary">Access System</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDER: MAIN APP ---
   return (
     <div className="app-container">
       <header className="main-header">
         <div className="header-content">
           <h1>Texas Diabolo <span>2026</span></h1>
-          <div className="division-selector">
-            <select value={currentDivision} onChange={(e) => setCurrentDivision(e.target.value)}>
-              {data.divisions.map(div => <option key={div} value={div}>{div}</option>)}
-            </select>
+          <div className="header-actions">
+            <div className="division-selector">
+              <select value={currentDivision} onChange={(e) => setCurrentDivision(e.target.value)}>
+                {data.divisions.map(div => <option key={div} value={div}>{div}</option>)}
+              </select>
+            </div>
+            <button onClick={handleLogout} className="btn-logout">Logout</button>
           </div>
         </div>
         
@@ -201,7 +217,6 @@ function App() {
             </div>
             <div className="setting-block">
               <h3>Technical Scoring Weights</h3>
-              <p className="subtext">Adjust multipliers for difficulty.</p>
               <div className="settings-grid">
                 {Object.keys(data.weights).map(key => (
                   <div key={key} className="weight-input">
@@ -211,7 +226,6 @@ function App() {
                 ))}
               </div>
             </div>
-            
             <div className="setting-block danger-zone">
               <h3>Danger Zone</h3>
               <p>Resetting will permanently delete all competitor data.</p>
@@ -259,7 +273,6 @@ function App() {
                 <span className="score-val">{calculateTotal(currentScores.technical, currentScores.performance, currentScores.deductions)}</span>
               </div>
             </div>
-            
             <div className="sliders-container">
               {judgeTab === 'tech' ? Object.keys(currentScores.technical).map(cat => (
                 <div key={cat} className="slider-group">
@@ -279,7 +292,6 @@ function App() {
                 </div>
               ))}
             </div>
-
             <div className="deductions-panel">
               <h3>Deductions</h3>
               <div className="deduction-grid">
@@ -295,7 +307,6 @@ function App() {
                 ))}
               </div>
             </div>
-
             <div className="judge-actions">
               <button onClick={() => setView('register')} className="btn-text">Cancel</button>
               <button onClick={submitScore} className="btn-primary">Confirm Score</button>
