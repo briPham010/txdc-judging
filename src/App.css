@@ -124,3 +124,22 @@ input[type=range]::-webkit-slider-thumb { appearance: none; width: 20px; height:
 .btn-judge { padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; background: white; border: 1px solid var(--border); cursor: pointer; color: var(--text-muted); }
 .btn-judge:hover { border-color: var(--primary); color: var(--primary); }
 .btn-judge.done { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+
+
+/* Dynamic Chart Colors for Analysis Tab */
+.chart-color-1 { background: var(--chart-1); }
+.chart-color-2 { background: var(--chart-2); }
+.chart-color-3 { background: var(--chart-3); }
+.chart-color-4 { background: var(--chart-4); }
+.chart-color-5 { background: var(--chart-5); }
+.chart-color-6 { background: #10b981; } /* Fallback */
+
+/* MASTER UPLOAD */
+.upload-area { border: 2px dashed var(--border); border-radius: 12px; padding: 30px; text-align: center; background: #f8fafc; transition: all 0.2s; }
+.upload-area:hover { border-color: var(--primary); background: #f0fdfa; }
+.upload-area p { margin-top: 0; color: var(--text-muted); }
+.file-input { display: block; margin: 10px auto; padding: 10px; background: white; border: 1px solid var(--border); border-radius: 6px; }
+.file-list { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
+.file-tag { background: #e0e7ff; color: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+.mt-4 { margin-top: 2rem; }
+.table-responsive { overflow-x: auto; }
